@@ -42,7 +42,10 @@ for ticker in tickers:
         print(f"No new data for {ticker}")
         continue
     df = df.reset_index()
-    df.columns = [c.lower().replace(" ", "_") for c in df.columns]
+    
+    # Fix for newer yfinance returning multi-level column tuples
+    df.columns = [c[0].lower() if isinstance(c, tuple) else c.lower() for c in df.columns]
+    
     df["ticker"] = ticker
     all_rows.append(df[["date", "close", "high", "low", "open", "volume", "ticker"]])
     print(f"Fetched {len(df)} rows for {ticker}")
