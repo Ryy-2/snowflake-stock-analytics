@@ -8,7 +8,8 @@ from datetime import datetime, timedelta
 conn = snowflake.connector.connect(
     account=os.environ["SNOWFLAKE_ACCOUNT"],
     user=os.environ["SNOWFLAKE_USER"],
-    password=os.environ["SNOWFLAKE_PASSWORD"],
+    token=os.environ["SNOWFLAKE_PASSWORD"],
+    authenticator='oauth',
     warehouse=os.environ["SNOWFLAKE_WAREHOUSE"],
     database=os.environ["SNOWFLAKE_DATABASE"],
     schema=os.environ["SNOWFLAKE_SCHEMA"]
