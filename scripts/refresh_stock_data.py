@@ -33,7 +33,7 @@ if start_date >= end_date:
     exit()
 
 # Fetch new data from Yahoo Finance
-tickers = ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA"]
+tickers = ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA", "SPY"]
 all_rows = []
 
 for ticker in tickers:
