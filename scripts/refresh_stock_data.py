@@ -17,7 +17,12 @@ conn = snowflake.connector.connect(
 cursor = conn.cursor()
 
 # ── Tickers ──────────────────────────────────────────────────
-tickers = ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA", "SPY"]
+tickers = [
+    # US Stocks
+    "AAPL", "AMZN", "GOOGL", "MSFT", "TSLA", "SPY",
+    # ASX ETFs
+    "A200.AX", "ASIA.AX", "CRYP.AX", "HACK.AX", "NDQ.AX", "VAS.AX", "VGS.AX"
+]
 
 all_rows = []
 
