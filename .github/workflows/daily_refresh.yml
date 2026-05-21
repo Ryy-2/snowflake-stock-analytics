@@ -2,7 +2,7 @@ name: Daily Stock Data Refresh
 
 on:
   schedule:
-    - cron: '0 22 * * 1-5'
+    - cron: '0 14 * * 2-6'  # midnight Sydney time (UTC+10), Tue-Sat
   workflow_dispatch:
 
 jobs:
