@@ -22,7 +22,6 @@ tickers = ["AAPL", "AMZN", "GOOGL", "MSFT", "TSLA", "SPY"]
 all_rows = []
 
 for ticker in tickers:
-    # Get last loaded date PER ticker so new tickers backfill from 2022
     cursor.execute(f"""
         SELECT COALESCE(MAX(date), '2021-12-31')
         FROM stock_analytics.raw.raw_stock_prices
@@ -41,7 +40,7 @@ for ticker in tickers:
     df = yf.download(ticker, start=start_date, end=end_date, auto_adjust=True)
 
     if df.empty:
-        print(f"{ticker}: no data returned from Yahoo Finance. Skipping.")
+        print(f"{ticker}: no data returned. Skipping.")
         continue
 
     df = df.reset_index()
@@ -53,27 +52,66 @@ for ticker in tickers:
     all_rows.append(df)
     print(f"{ticker}: fetched {len(df)} rows")
 
-# ── Load into Snowflake ──────────────────────────────────────
+# ── Load into Snowflake using MERGE ──────────────────────────
 if not all_rows:
-    print("No new data to load across any ticker.")
+    print("No new data to load.")
     cursor.close()
     conn.close()
     exit()
 
 combined = pd.concat(all_rows)
 
+# Create a temp table to stage incoming data
+cursor.execute("""
+    CREATE OR REPLACE TEMPORARY TABLE stock_analytics.raw.raw_stock_prices_temp (
+        date    VARCHAR,
+        close   FLOAT,
+        high    FLOAT,
+        low     FLOAT,
+        open    FLOAT,
+        volume  FLOAT,
+        ticker  VARCHAR
+    )
+""")
+
+# Insert new data into temp table
 insert_sql = """
-    INSERT INTO stock_analytics.raw.raw_stock_prices
+    INSERT INTO stock_analytics.raw.raw_stock_prices_temp
     (date, close, high, low, open, volume, ticker)
     VALUES (%s, %s, %s, %s, %s, %s, %s)
 """
-
 rows = combined.values.tolist()
 cursor.executemany(insert_sql, rows)
+print(f"Staged {len(rows)} rows in temp table")
+
+# MERGE from temp into raw — only insert if ticker+date doesn't exist
+cursor.execute("""
+    MERGE INTO stock_analytics.raw.raw_stock_prices AS target
+    USING stock_analytics.raw.raw_stock_prices_temp AS source
+        ON target.ticker = source.ticker
+        AND target.date = TRY_TO_DATE(source.date)
+    WHEN NOT MATCHED THEN INSERT (
+        date, close, high, low, open, volume, ticker
+    ) VALUES (
+        TRY_TO_DATE(source.date),
+        source.close,
+        source.high,
+        source.low,
+        source.open,
+        source.volume,
+        source.ticker
+    )
+""")
+
+# Get rows inserted
+cursor.execute("SELECT COUNT(*) FROM stock_analytics.raw.raw_stock_prices_temp")
+staged = cursor.fetchone()[0]
+
 conn.commit()
 
-print(f"Successfully loaded {len(rows)} new rows into Snowflake")
+print(f"MERGE complete — {staged} rows staged, duplicates automatically skipped")
 print(f"Tickers updated: {combined['ticker'].unique().tolist()}")
+print("Dynamic Tables will auto-refresh within 1 day")
 
 cursor.close()
 conn.close()
