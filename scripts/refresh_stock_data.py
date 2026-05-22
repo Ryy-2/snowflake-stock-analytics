@@ -111,12 +111,16 @@ cursor.execute("""
 # Get rows inserted
 cursor.execute("SELECT COUNT(*) FROM stock_analytics.raw.raw_stock_prices_temp")
 staged = cursor.fetchone()[0]
-
 conn.commit()
-
 print(f"MERGE complete — {staged} rows staged, duplicates automatically skipped")
 print(f"Tickers updated: {combined['ticker'].unique().tolist()}")
-print("Dynamic Tables will auto-refresh within 1 day")
+
+# Force immediate refresh of Dynamic Tables
+cursor.execute("ALTER DYNAMIC TABLE stock_analytics.staging.stg_stock_prices REFRESH")
+print("Staging refreshed")
+cursor.execute("ALTER DYNAMIC TABLE stock_analytics.analytics.fact_daily_returns REFRESH")
+print("Fact table refreshed")
 
 cursor.close()
 conn.close()
+print("Pipeline complete!")
