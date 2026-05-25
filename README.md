@@ -186,4 +186,4 @@ The GitHub Actions workflow runs automatically:
 
 ## 📬 Contact
 
-Built by **Pinary** as part of a data engineering portfolio project.
+Built by **Nary** as part of a data engineering portfolio project.
